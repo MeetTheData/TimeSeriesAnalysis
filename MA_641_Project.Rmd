@@ -1,0 +1,372 @@
+---
+title: "MA641_MeetPatel_Project"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  html_notebook: default
+date: "2023-18-12"
+---
+
+```{r}
+install.packages("TSA")
+install.packages("tseries")
+library(TSA)
+library(tseries)
+```
+
+### Introduction
+
+Time series analysis is a method for analyzing data in order to spot trends and predict what will happen in the future. I will carry out time series analysis on two types of data i.e. seasonal and non-seasonal data. This project will provide a procedure to analyze and fit a time series model in R. Part A covers analysis and forecast of Closing Price of Schodinger Stock Data. Part B covers analysis and forecast of Catfish Sales in United States. The data comprises of catfish sales on monthly level. I've followed the Box-Jenkins approach in the project in order to fit an appropriate time series model.
+
+### Methodology
+
+I follow Box-Jenkins Models to tackle the time-series data and fit an appropriate model to the data. The Box-Jenkins Model comprises of six steps that needs to be followed.
+
+1.  Stationarity
+2.  Estimating Models
+3.  Parameter Redundancy
+4.  Parameter Estimation
+5.  Residual Analysis
+6.  Forecast
+
+Step 1: Stationarity: To check if the data is stationary, if the data is stationary we can move to the next step, else we need to make the data stationary using Differencing, Detrending or Transformation. To check stationarity we perform Dicky Fuller Test.
+
+Step 2: Estimating Models: We estimate the p and q values of ARIMA model, based on the ACF and PACF plots on the stationary data. We also use EACF plot to estimate the models.
+
+Step 3: Parameter Redundancy: We work with all the estimated models. We fit the model to all the combinations of estimated p,d,q values.
+
+Step 4: Parameter Estimation: Once we fit all the models, we compare the models and check the loglikelihood, AIC and BIC value. We select the model with lowest AIC and BIC values, and lower number of parameters. We can selected the model with slightly higher AIC or BIC, if it reduces the number of parameters in the model significantly.
+
+Step 5: Residual Analysis: Based on the model that we find to be the best fit, we perform analysis on the residuals of the model. We plot the ACF plot to check if the residuals are uncorrelated. We check the normality of the residuals by plotting Q-Q plot, histogram and performing Shapiro-Wilk Test. We perform Ljung-Box Test to know if the residual is white noise or not.
+
+Step 6: Forecast: The final step of Time Series Analysis, is to forecast data for the future. We fit the best model we found above on the original data and forecast the future values.
+
+### Part A: Non-Seasonal Data
+
+For Non-Seasonal Data, I've taken the Schodinger Stock Data, consisting of daily Closing Price. The data is dated from Feb 2020 to Dec 2023. I will try to fit a time series model and lastly predict the closing price of the next few days.
+
+```{r}
+data <- read.csv('/Users/meetpatel/Documents/Stevens/Sem 3/MA-641/Project/nonseasonal_data.csv')
+print(data)
+```
+
+```{r}
+data <- read.csv('/Users/meetpatel/Documents/Stevens/Sem 3/MA-641/Project/nonseasonal_data.csv')
+data$date <- as.Date(data$date, format = "%YYYY-%mm-%dd")
+ts_data <- ts(data$close, frequency = 252, start = c(2020, 2, 6))
+head(ts_data)
+```
+
+```{r}
+plot.ts(ts_data, type = 'l', ylab = 'Close', xlab = 'Year', main = "Schrodinger Stock")
+```
+***Check for stationarity using Dicky-Fuller Test.***
+
+H0: The time series is non-stationary.
+
+H1: The time series is stationary.
+
+```{r}
+adf.test(ts_data)
+```
+***Since p-value is 0.4391 \> 0.05, we fail to reject H0, the data is not stationary.***
+
+Since, the data is not stationary we will take difference of the series to make it stationary.
+
+
+```{r}
+ts_diff_data <- diff((ts_data))
+plot.ts(ts_diff_data, type = 'l', ylab = 'Close', xlab = 'Year', main = "Schrodinger Stock")
+```
+***Check for stationarity using Dicky-Fuller Test.***
+
+H0: The time series is non-stationary.
+
+H1: The time series is stationary.
+
+```{r}
+adf.test(ts_diff_data)
+```
+***Since p-value is 0.01 \< 0.05, we reject H0, the data is stationary.***
+
+The data is stationary we will plot ACF and PACF.
+
+```{r}
+acf(ts_diff_data, main = "ACF of Schrodinger Stock", lag.max = 100)
+```
+
+```{r}
+pacf(ts_diff_data, main = "PACF of Schrodinger Stock", lag.max = 100)
+```
+
+```{r}
+eacf(ts_diff_data)
+```
+Based on the ACF, PACF and EACF, we test for the following 4 models:-
+1.
+ARIMA(0,1,3)
+2.
+ARIMA(2,1,3)
+3.
+ARIMA(3,1,3)
+4.
+ARIMA(4,1,3)
+5.
+ARIMA(5,1,3)
+
+```{r}
+plot(decompose(diff(ts_diff_data)))
+```
+
+```{r}
+model1 = arima(ts_diff_data,order=c(0,1,3))
+model1
+```
+
+```{r}
+AIC(model1)
+```
+
+```{r}
+BIC(model1)
+```
+
+```{r}
+model2 = arima(ts_diff_data,order=c(2,1,3))
+model2
+```
+
+```{r}
+AIC(model2)
+```
+
+```{r}
+BIC(model2)
+```
+
+```{r}
+model3 = arima(ts_diff_data,order=c(3,1,3))
+model3
+```
+
+```{r}
+AIC(model3)
+```
+
+```{r}
+BIC(model3)
+```
+
+```{r}
+model4 = arima(ts_diff_data,order=c(4,1,3))
+model4
+```
+
+```{r}
+AIC(model4)
+```
+
+```{r}
+BIC(model4)
+```
+
+***The best model for the above non-seasonal data is ARIMA(2,1,3) based on AIC and BIC values.***
+
+***Residual Analysis***
+
+```{r}
+selected_model <- arima(ts_diff_data,order=c(2,1,3))
+acf(residuals(selected_model), lag.max = 100, main ="ACF plot of residuals of ARIMA(2,1,3)")
+```
+
+```{r}
+qqnorm(residuals(selected_model), main = "Q-Q plot of residuals of ARIMA(2,1,3)"); qqline(residuals(selected_model))
+```
+
+```{r}
+hist(residuals(selected_model), freq = FALSE, main = "Histogram of residuals of ARIMA(2,1,3)")
+```
+```{r}
+shapiro.test(residuals(selected_model))
+```
+***From the Shapiro-Wilk test, the p-value of 2.2e-16 \< 0.05, shows that the residual is not normal.***
+
+```{r}
+Box.test(residuals(selected_model), lag = 10, type = "Ljung-Box")
+```
+
+***The Box-Ljung test, having p-value 0.8702 \> 0.05, shows that the residuals are independent and identically distributed.***
+
+***Diagnostic plot of ARIMA(2,1,3)***
+
+```{r}
+tsdiag(selected_model, gof.lag = 20)
+```
+
+#### Forecast
+```{r}
+selected_model <- arima(ts_data,order=c(2,1,3))
+plot(selected_model, n1=c(2023,12), n.ahead=12, ylab='Close Price',pch=20, main = "Plot of Schrodingers Stock forecast")
+```
+
+
+#### Conclusion
+We can see that ARIMA(2,1,3) is not a great fit to the data, and is not able to forecast the Closing Prices. The forecast seems to be a straight line since the ARIMA model tends to predict the approximate mean values, and gives a large confidence interval for the predicted values. As observed in the ACF plot of residual there are still significant lag, meaning there are still trends that we fail to capture. We might get better results using GARCH models.
+
+### Part B: Seasonal Data
+
+For Seasonal Data, I've taken Catfish sales data for United States, which has the monthly data for the Catfish sales in US from 1986 to 2012. I will fit the data to a time series model and lastly predict the Catfish sales for future years.
+
+```{r}
+s_data <- read.csv('/Users/meetpatel/Documents/Stevens/Sem 3/MA-641/Project/seasonal_data.csv')
+print(s_data)
+```
+
+```{r}
+s_data$Value <- as.numeric(gsub(",", "", s_data$Value))
+
+ts_s_data <- ts(s_data$Value, frequency = 12, start = c(1986, 1))
+
+head(ts_s_data)
+```
+
+```{r}
+plot.ts(ts_s_data, type = 'l', ylab = 'Amount', xlab = 'Month', main = "Catfish Sales")
+```
+
+```{r}
+acf(ts_s_data, main = "ACF of Catfish Sales Data", lag.max = 100)
+```
+
+```{r}
+pacf(ts_s_data, main = "PACF of Catfish Sales Data", lag.max = 100)
+```
+
+```{r}
+subsetted_data <- subset(s_data, Date >= as.Date("1996-01-01") & Date <= as.Date("2000-01-01"))
+head(subsetted_data)
+```
+
+
+```{r}
+ts_s_data <- ts(subsetted_data$Value, frequency = 12, start = c(1996, 1))
+plot.ts(ts_s_data, type = 'l', ylab = 'Amount', xlab = 'Month', main = "Catfish Sales")
+```
+
+```{r}
+adf.test(ts_s_data)
+```
+***As the p-value is 0.02792 \< 0.05, we reject H0, the data is stationary.***
+
+Since, we are unable to directly capture the seasonality in the data, we try to modify the data by taking difference of log of data.
+
+```{r}
+ts_diff_s_data <- diff(ts_s_data)
+plot.ts(ts_diff_s_data, type = 'l', ylab = 'Close', xlab = 'Year', main = "Catfish Sales")
+```
+
+```{r}
+acf(ts_diff_s_data, main = "ACF of Catfish Sales Data", lag.max = 24)
+```
+***Based on ACF we can see that it is following seasonal MA as there is lag at every 12 months. We also see regular MA(3) or None.***
+
+```{r}
+pacf(ts_diff_s_data, main = "PACF of Catfish Sales Data", lag.max = 24)
+```
+***Based on PACF we do not any seasonal AR. We do see regualr AR(3), regular AR(4) and None***
+```{r}
+eacf(diff(ts_diff_s_data))
+```
+We try the following Models based on EACF:
+1.  ARIMA(3,1,3)x(0,0,1)12
+2.  ARIMA(4,1,3)x(0,0,1)12
+3.  ARIMA(0,1,0)x(0,0,1)12
+
+```{r}
+s_model1 <- arima(ts_diff_s_data, order= c(3,1,3), seasonal=list(order=c(0,0,1), period= 12))
+s_model1
+```
+```{r}
+AIC(s_model1)
+```
+
+```{r}
+BIC(s_model1)
+```
+
+```{r}
+s_model2 <- arima(ts_diff_s_data, order= c(4,1,3), seasonal=list(order=c(0,0,1), period= 12))
+s_model2
+```
+
+```{r}
+AIC(s_model2)
+```
+
+```{r}
+BIC(s_model2)
+```
+
+```{r}
+s_model3 <- arima(ts_diff_s_data, order= c(0,1,0), seasonal=list(order=c(0,0,1), period= 12))
+s_model3
+```
+
+```{r}
+AIC(s_model3)
+```
+
+```{r}
+BIC(s_model3)
+```
+
+####We go with Seasonal Model_1 as it has least AIC and BIC values.
+
+#### Residual Analysis
+```{r}
+s_model <- arima(ts_diff_s_data, order= c(3,1,3), seasonal=list(order=c(0,0,1), period= 12))
+acf(residuals(s_model), lag.max = 100, main = "ACF plot of residuals of ARIMA(3,1,3)x(0,0,1)12")
+```
+***We se no significant lags in ACF of residuals***
+```{r}
+qqnorm(residuals(s_model), main = "Q-Q plot of residuals of ACF plot of residuals of ARIMA(3,1,3)x(0,0,1)12"); qqline(residuals(s_model))
+```
+
+```{r}
+hist(residuals(s_model), freq = FALSE, main = "Histogram plot of residuals of ARIMA(3,1,3)x(0,0,1)12")
+```
+
+```{r}
+shapiro.test(residuals(s_model))
+```
+***From the Shapiro-Wilk test, the p-value of 0.462 \> 0.05, shows that the residual is normal.***
+```{r}
+Box.test(residuals(s_model), lag = 10, type = "Ljung-Box")
+```
+***The Box-Ljung test, having p-value 0.5455 \> 0.05, shows that the residuals are independent and identically distributed.***
+
+***Diagnostic plot of ARIMA(3,1,3)x(0,0,1)12***
+```{r}
+tsdiag(s_model, gof.lag = 20)
+```
+
+#### Forecast
+```{r}
+s_model <- arima(ts_s_data, order= c(0,1,0), seasonal=list(order=c(1,0,1), period= 12))
+plot(s_model, n1=c(1996,1), n.ahead=24,ylab='Catfish Sales',pch=20, main = "Plot of Catfish Sales data along with two year forecast")
+```
+#### Conclusion
+
+We can see that SARIMA(3,1,3)x(0,0,1)[12] is a great fit to the data, and is able to forecast the Catfish Sales by capturing the seasonality trends.
+
+#### References
+
+1.  Cryer, J. D., & Chan, K. S. (2008). Time series analysis: with applications in R (Vol. 2). New York: Springer.\
+2.  Katesari, H. S., & Zarodi, S. (2016). Effects of coverage choice by predictive modeling on frequency of accidents. Caspian Journal of Applied Sciences Research, 5(3), 28-33.\
+3.  Safari-Katesari, H., Samadi, S. Y., & Zaroudi, S. (2020). Modelling count data via copulas. Statistics, 54(6), 1329-1355.\
+4.  Shumway, R. H., Stoffer, D. S., & Stoffer, D. S. (2000). Time series analysis and its applications (Vol. 3). New York: springer.\
+5.  Safari-Katesari, H., & Zaroudi, S. (2020). Count copula regression model using generalized beta distribution of the second kind. Statistics, 21, 1-12.
+6.  Safari-Katesari, H., & Zaroudi, S. (2021). Analysing the impact of dependency on conditional survival functions using copulas. Statistics in Transition New Series, 22(1).\
+7.  Safari Katesari, H., (2021) Bayesian dynamic factor analysis and copula-based models for mixed data, PhD dissertation, Southern Illinois University Carbondale\
+
